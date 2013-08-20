@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><title>(Testing with Cassandra)</title>
+<meta name="author" content="(Gregory Cooper)"/>
+<link rel="stylesheet" href="http://www.pdxcass.org/reveal.js/css/reveal.min.css">
+<link rel="stylesheet" href="http://www.pdxcass.org/reveal.js/css/theme/sky.css" id="theme">
+
+<link rel="stylesheet" href="http://www.pdxcass.org/reveal.js/css/print/pdf.css" type="text/css" media="print">
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+<section>
+<h1>Testing with Cassandra</h1>
+<h2>Gregory Cooper</h2>
+<h2><a href="mailto:gcooper@coopermetal1">gcooper@coopermetal1</a></h2>
+<h2></h2></section>
+<aside class="notes">
+<p>
+Notes here
+</p>
+</aside>
+
+<section>
+<section id="sec-1" >
+
+<h2>Welcome</h2>
+<ul class="org-ul"><li class="fragment none">Who am I and what's my role?<br/></li>
+<li class="fragment none">How is Cassandra being used at iovation<br/><ul class="org-ul"><li class="fragment none">Several clusters<br/></li>
+<li class="fragment none">Multiple data centers<br/></li>
+<li class="fragment none">"Global" Replication factor of 3 with 1 per data center<br/></li></ul>
+</li></ul>
+</section>
+
+</section>
+<section>
+<section id="sec-2"  data-background="#00AAAA" data-background-transition="slide">
+
+<h2>Service Dev. Environment</h2>
+<ul class="org-ul"><li class="fragment none">Maven centric<br/></li>
+<li class="fragment none">Mockito is moderately used<br/></li>
+<li class="fragment none">Jenkins (Hudson) continuous integration<br/></li>
+<li class="fragment none">Frequent deployments<br/></li>
+<li class="fragment none">Matching QA environment difficult<br/><ul class="org-ul"><li class="fragment none">Scalability makes it hard<br/></li></ul>
+</li></ul>
+</section>
+
+</section>
+<section>
+<section id="sec-3" >
+
+<h2>Cassandra Clients</h2>
+<ul class="org-ul"><li class="fragment none">Astyanax and some Pelops<br/></li>
+<li class="fragment none">Interested in the binary driver<br/><ul class="org-ul"><li class="fragment none">1.2.x has binary and Thrift<br/></li>
+<li class="fragment none">Anyone migrated yet?<br/></li></ul>
+</li></ul>
+</section>
+
+</section>
+<section>
+<section id="sec-4" >
+
+<h2>Unit Testing</h2>
+<ul class="org-ul"><li class="fragment none">Mockito heavy<br/></li>
+<li class="fragment none">DAO driven<br/></li>
+</section>
+<section id="sec-4-1" >
+
+<h3>TBD Better example</h3>
+<pre class="example">
+@RunWith(MockitoJUnitRunner.class)
+public class CassandraDrsDaoUnitTest {
+    private String UTF_8 = "utf-8";
+    private String[] testServers = {"test1:9999", "test2:9999"};
+    private List&lt;Column&gt; matchData;
+    Long ts = System.currentTimeMillis();
+
+    CassandraDrsDao dao;
+    ColumnFamily&lt;String, String&gt; deviceMatchColumnFamily = ColumnFamily.newColumnFamily("DeviceMatch", StringSerializer.get(), StringSerializer.get());;
+    List&lt;String&gt; deviceColNames;
+    ColumnFamily&lt;String,String&gt; exclusionColumnFamily = ColumnFamily.newColumnFamily("SignatureExclusion", StringSerializer.get(), StringSerializer.get());;
+    List&lt;String&gt; exlucsionColNames;
+    
+    @Mock
+    PurgePolicyComponent policyComponent;
+    
+    @Mock
+    private Keyspace patternStoreMock;
+
+...
+
+   @Test
+    public void testReadExclusionListWithEmptyList() throws Exception {
+        NuidSet nuidSet = new NuidSet();
+        nuidSet.addNuid("nuid1", "value");
+        
+        List&lt;String&gt; nuidSigs = newArrayList();
+        
+        ColumnFamilyQuery cfQueryMock = mock(ColumnFamilyQuery.class);
+        RowSliceQuery     rsQueryMock = mock(RowSliceQuery.class);
+        OperationResult resultMock = mock(OperationResult.class);
+        
+        when(exclusionStoreMock.prepareQuery(eq(exclusionColumnFamily))).thenReturn(cfQueryMock);
+        when(cfQueryMock.getKeySlice(eq(nuidSigs))).thenReturn(rsQueryMock);
+        when(rsQueryMock.withColumnSlice(exlucsionColNames)).thenReturn(rsQueryMock);
+        when(rsQueryMock.execute()).thenReturn(resultMock);
+        
+        
+        dao.readNuidExclusion(nuidSigs, nuidSet);
+        verify(exclusionStoreMock, never()).prepareQuery(eq(exclusionColumnFamily));
+        assertNotNull(nuidSet.getNuid("nuid1"));
+    }
+</pre>
+</section>
+
+</section>
+<section>
+<section id="sec-5" >
+
+<h2>Integration testing</h2>
+<ul class="org-ul"><li class="fragment none">Testing at a functional level<br/></li>
+<li class="fragment none">Using running Cassandra instance<br/></li></ul>
+</section>
+</section>
+<section>
+<section id="sec-6" >
+
+<h2>Different Approaches</h2>
+<ul class="org-ul"><li class="fragment none">Maven plugin<br/></li>
+<li class="fragment none">Embedded instance<br/></li></ul>
+</section>
+</section>
+<section>
+<section id="sec-7" >
+
+<h2>Maven plugin</h2>
+<ul class="org-ul"><li class="fragment none">Configure your pom<br/></li>
+<li class="fragment none">Running Cassandra instance "just available"<br/></li>
+</section>
+<section id="sec-7-1" >
+
+<h3>Example POM</h3>
+<pre class="example">
+&lt;build&gt;
+    &lt;plugins&gt;
+        ...
+        &lt;plugin&gt;
+            &lt;groupId&gt;com.iovation.maven&lt;/groupId&gt;
+            &lt;artifactId&gt;maven-cassandra-plugin&lt;/artifactId&gt;
+            &lt;version&gt;1.0.1-SNAPSHOT&lt;/version&gt;
+            &lt;executions&gt;
+                &lt;execution&gt;
+                    &lt;goals&gt;
+                        &lt;goal&gt;cassandra-start&lt;/goal&gt;
+                        &lt;goal&gt;cassandra-stop&lt;/goal&gt;
+                    &lt;/goals&gt;
+                &lt;/execution&gt;
+            &lt;/executions&gt;
+        &lt;/plugin&gt;
+        &lt;plugin&gt;
+            &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+            &lt;artifactId&gt;maven-war-plugin&lt;/artifactId&gt;
+            &lt;version&gt;2.0&lt;/version&gt;
+            &lt;configuration&gt;
+                &lt;warName&gt;service&lt;/warName&gt;
+            &lt;/configuration&gt;
+        &lt;/plugin&gt;
+    &lt;/plugins&gt;
+&lt;/build&gt;
+</pre>
+</section>
+
+</section>
+<section>
+<section id="sec-8" >
+
+<h2>Embedded approach</h2>
+<ul class="org-ul"><li class="fragment none">Jeremy Sevellec's approach for embedding<br/><p>
+Personall I find this easier to control initial setup.
+</p>
+</li>
+
+</section>
+<section id="sec-8-1" >
+
+<h3>POM Dependency</h3>
+<pre class="example">
+&lt;dependency&gt;
+    &lt;groupId&gt;org.cassandraunit&lt;/groupId&gt;
+    &lt;artifactId&gt;cassandra-unit&lt;/artifactId&gt;
+    &lt;version&gt;1.1.0.1&lt;/version&gt;
+    &lt;scope&gt;test&lt;/scope&gt;
+&lt;/dependency&gt;
+</pre>
+
+</section>
+<section id="sec-8-2" >
+
+<h3>Setup and Data load</h3>
+<pre class="example">
+@RunWith(SpringJUnit4ClassRunner.class)
+@DirtiesContext
+@ActiveProfiles(profiles = "test")
+@ContextConfiguration(classes = {TestPropertyConfiguration.class, DaoConfig.class, CassandraDemandConfiguration.class})
+public class TlmArchiveTtlTest {
+
+    @Resource(name = "tlmArchiveTtl")
+    private TlmArchiveTtl tlmArchiveTtl;
+
+    @BeforeClass
+    public static void setUp() throws Exception {
+        // This MUST be fired up before the spring context is created.
+        EmbeddedCassandraServerHelper.startEmbeddedCassandra("tatestcassandra.yaml");
+        DataLoader dataLoader = new DataLoader("TestCluster", "localhost:9172");
+        dataLoader.load(new ClassPathJsonDataSet("clustertestdata.json"));
+
+        dataLoader.load(new ClassPathJsonDataSet("drsindextestdata.json"));
+    }
+...
+</pre>
+
+</section>
+<section id="sec-8-3" >
+
+<h3>Actual Test</h3>
+<pre class="example">
+@Test
+public void testReadWriteSimpleText() throws Exception {
+    String testData = "... (omitted json representing transaction here) ...";
+    verifyData(testData);
+}
+
+private void verifyData(String data) throws Exception {
+    TlmArchiveRecord record = new TlmArchiveRecordImpl();
+    record.setData(data);
+
+    long testTime = System.currentTimeMillis();
+    String uuid = UUID.randomUUID().toString();
+    TlmArchiveKey key = new TlmArchiveKeyImpl(testTime, uuid);
+    record.setTlmArchiveKey(key);
+
+    tlmArchiveWriter.writeRecord(record);
+    assertNotNull(record.getTlmArchiveKey());
+    TlmArchiveKey savedKey = record.getTlmArchiveKey();
+
+    TlmArchiveRecord r2 = tlmArchiveReader.readRecord(savedKey);
+    assertEquals(data, r2.getData());
+}
+</pre>
+
+</section>
+<section id="sec-8-4" >
+
+<h3>"Long running" trick</h3>
+<pre class="example">
+/**
+ * Most of the time taken on this comes from killing 3650 column families which take about 1200ms each.
+ * So killing 10 years of column families takes about an hour.
+ * &lt;p/&gt;
+ * Creating the column families isn't especially fast either, about 600ms each - so creating 3650 column families
+ * and inserting 87672 records takes about 30 minutes.
+ */
+@Test
+public void testTenYearsOfDataOneMessageAnHour() throws Exception {
+    assumeTrue(wantLongRunningTests);
+    DateTime startDateTime = new DateTime(1980, 1, 1, 0, 0, 0, 0);
+    DateTime endDateTime = new DateTime(1989, 12, 31, 23, 59, 59, 999);
+
+    // the one makes it easy to compare message count to time:
+    // the 1234th message will have the last 4 digits of the ms time be 1234
+    // and the formatted time will end in 01,234
+    int period = 60 * 60 * 1000 + 1;
+
+    verifyInsertRead(startDateTime, endDateTime, period, false);
+}
+</pre>
+<p>
+The 'assumeTrue' is the key here
+</p>
+</section>
+</section>
+<section>
+<section id="sec-9" >
+
+<h2>System and Cassandra testing</h2>
+</section>
+</section>
+<section>
+<section id="sec-10" >
+
+<h2>Cluster spin up and destroying</h2>
+<ul class="org-ul"><li class="fragment none">Touches realm of puppet, chef, juju charms, etc&#x2026;<br/></li>
+</section>
+<section id="sec-10-1" >
+
+<h3></h3>
+</section>
+<section id="sec-10-2" >
+
+<h3>Cluster based testing 'in the large'</h3>
+<ul class="org-ul"><li class="fragment none">Automation for load and capacity testing<br/></li></ul>
+
+</section>
+<section id="sec-10-3" >
+
+<h3>Cluster based testing 'in the small'</h3>
+<ul class="org-ul"><li class="fragment none">Cassandra cluster automation (WIP)<br/><ul class="org-ul">
+<li>Proving out our usage of cassandra.
+</li>
+<li>System level environment for cassandra 'deep dives' (learning) 
+</li>
+<li>Regression testing our assumptions when we upgrade Cassandra.
+</li>
+</ul>
+</li></ul>
+</section>
+
+</section>
+<section>
+<section id="sec-11" >
+
+<h2>Cool things</h2>
+<ul class="org-ul"><li class="fragment none">Github pages<br/><p>
+Great way to serve static html pages for free!
+</p>
+<ul class="org-ul"><li class="fragment none">Jekyll support for html generation<br/></li></ul>
+</li>
+
+<li class="fragment none">Org-reveal<br/><ul class="org-ul"><li class="fragment none">"Source code" for this reveal.js in 'org-mode'<br/></li></ul>
+</li></ul>
+</section>
+
+</section>
+<section>
+<section id="sec-12" >
+
+<h2>Questions/Next meeting</h2>
+<ul class="org-ul"><li class="fragment none">What should we do next?<br/></li>
+<li class="fragment none">Discussion/Volunteers?<br/></li>
+<li class="fragment none">Want to fiddle with github pages?<br/></li>
+<li class="fragment none">Speakers?  Topics<br/></li></ul>
+</section>
+
+
+
+
+</section>
+<section>
+<section id="sec-13" >
+
+<h2>Interesting links</h2>
+<ul class="org-ul"><li class="fragment none">Iovation and Cassandra<br/><p>
+<a href="http://www.planetcassandra.org/blog/post/iovation-chooses-cassandra-for-predictable-cost-growth-and-scalability">http://www.planetcassandra.org/blog/post/iovation-chooses-cassandra-for-predictable-cost-growth-and-scalability</a>
+</p>
+</li>
+
+<li class="fragment none">Maven Cassandra Testing<br/><p>
+<a href="http://mojo.codehaus.org/cassandra-maven-plugin/">http://mojo.codehaus.org/cassandra-maven-plugin/</a>
+</p>
+</li>
+
+<li class="fragment none">Embedded Cassandra Testing Library<br/><p>
+<a href="https://github.com/jsevellec/cassandra-unit">https://github.com/jsevellec/cassandra-unit</a>
+</p>
+</li></ul>
+</section>
+</section>
+<section>
+<section id="sec-14" >
+
+<h2>Thank you</h2>
+</section>
+</section>
+</div>
+</div>
+<script src="http://www.pdxcass.org/reveal.js/lib/js/head.min.js"></script>
+<script src="http://www.pdxcass.org/reveal.js/js/reveal.min.js"></script>
+<script>
+
+        		// Full list of configuration options available here:
+        		// https://github.com/hakimel/reveal.js#configuration
+        		Reveal.initialize({
+        			controls: true,
+        			progress: true,
+        			history: true,
+        			center: true,
+        			rollingLinks: true,
+        			keyboard: true,
+        			overview: true,
+        			 // slide width
+        			 // slide height
+        			 // slide margin
+        			 // slide minimum scaling factor
+        			 // slide maximum scaling factor
+
+
+        			theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+        			transition: Reveal.getQueryHash().transition || 'fade', // default/cube/page/concave/zoom/linear/fade/none
+        			transitionSpeed: 'default',
+
+        			// Optional libraries used to extend on reveal.js
+        			dependencies: [
+        				{ src: 'http://www.pdxcass.org/reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+        				{ src: 'http://www.pdxcass.org/reveal.js/plugin/markdown/showdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+        				{ src: 'http://www.pdxcass.org/reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+        				{ src: 'http://www.pdxcass.org/reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+        				{ src: 'http://www.pdxcass.org/reveal.js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+        				{ src: 'http://www.pdxcass.org/reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+        				// { src: 'http://www.pdxcass.org/reveal.js/plugin/search/search.js', async: true, condition: function() { return !!document.body.classList; } }
+        				// { src: 'http://www.pdxcass.org/reveal.js/plugin/remotes/remotes.js', async: true, condition: function() { return !!document.body.classList; } }
+        			]
+        		});
+</script>
+</body>
+</html>

@@ -1,0 +1,258 @@
+#+TITLE: Testing with Cassandra
+#+OPTIONS: toc:nil
+#+OPTIONS: num:nil
+#+OPTIONS: H:2
+#+REVEAL_THEME: sky 
+#+REVEAL_THEMExx: serif 
+#+REVEAL_TRANS: fade
+
+
+
+#+BEGIN_NOTES
+Notes here
+#+END_NOTES
+
+* Welcome
+*** Who am I and what's my role?
+*** How is Cassandra being used at iovation
+**** Several clusters
+**** Multiple data centers
+**** "Global" Replication factor of 3 with 1 per data center
+
+
+* Service Dev. Environment
+ :PROPERTIES:
+ :reveal_background: #00AAAA
+ :reveal_background_trans: slide
+ :END:
+*** Maven centric
+*** Mockito is moderately used
+*** Jenkins (Hudson) continuous integration
+*** Frequent deployments
+*** Matching QA environment difficult
+**** Scalability makes it hard
+
+
+* Cassandra Clients
+*** Astyanax and some Pelops
+*** Interested in the binary driver
+**** 1.2.x has binary and Thrift
+**** Anyone migrated yet?
+
+
+* Unit Testing
+*** Mockito heavy
+*** DAO driven
+** TBD Better example
+#+BEGIN_SRC
+@RunWith(MockitoJUnitRunner.class)
+public class CassandraDrsDaoUnitTest {
+    private String UTF_8 = "utf-8";
+    private String[] testServers = {"test1:9999", "test2:9999"};
+    private List<Column> matchData;
+    Long ts = System.currentTimeMillis();
+
+    CassandraDrsDao dao;
+    ColumnFamily<String, String> deviceMatchColumnFamily = ColumnFamily.newColumnFamily("DeviceMatch", StringSerializer.get(), StringSerializer.get());;
+    List<String> deviceColNames;
+    ColumnFamily<String,String> exclusionColumnFamily = ColumnFamily.newColumnFamily("SignatureExclusion", StringSerializer.get(), StringSerializer.get());;
+    List<String> exlucsionColNames;
+    
+    @Mock
+    PurgePolicyComponent policyComponent;
+    
+    @Mock
+    private Keyspace patternStoreMock;
+
+...
+
+   @Test
+    public void testReadExclusionListWithEmptyList() throws Exception {
+        NuidSet nuidSet = new NuidSet();
+        nuidSet.addNuid("nuid1", "value");
+        
+        List<String> nuidSigs = newArrayList();
+        
+        ColumnFamilyQuery cfQueryMock = mock(ColumnFamilyQuery.class);
+        RowSliceQuery     rsQueryMock = mock(RowSliceQuery.class);
+        OperationResult resultMock = mock(OperationResult.class);
+        
+        when(exclusionStoreMock.prepareQuery(eq(exclusionColumnFamily))).thenReturn(cfQueryMock);
+        when(cfQueryMock.getKeySlice(eq(nuidSigs))).thenReturn(rsQueryMock);
+        when(rsQueryMock.withColumnSlice(exlucsionColNames)).thenReturn(rsQueryMock);
+        when(rsQueryMock.execute()).thenReturn(resultMock);
+        
+        
+        dao.readNuidExclusion(nuidSigs, nuidSet);
+        verify(exclusionStoreMock, never()).prepareQuery(eq(exclusionColumnFamily));
+        assertNotNull(nuidSet.getNuid("nuid1"));
+    }
+#+END_SRC
+
+
+* Integration testing
+*** Testing at a functional level
+*** Using running Cassandra instance
+
+* Different Approaches
+*** Maven plugin
+*** Embedded instance
+
+* Maven plugin
+*** Configure your pom
+*** Running Cassandra instance "just available"
+** Example POM 
+#+BEGIN_SRC
+    <build>
+        <plugins>
+            ...
+            <plugin>
+                <groupId>com.iovation.maven</groupId>
+                <artifactId>maven-cassandra-plugin</artifactId>
+                <version>1.0.1-SNAPSHOT</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>cassandra-start</goal>
+                            <goal>cassandra-stop</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>2.0</version>
+                <configuration>
+                    <warName>service</warName>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+#+END_SRC
+
+
+* Embedded approach
+***  Jeremy Sevellec's approach for embedding
+Personall I find this easier to control initial setup.
+** POM Dependency
+#+BEGIN_SRC
+        <dependency>
+            <groupId>org.cassandraunit</groupId>
+            <artifactId>cassandra-unit</artifactId>
+            <version>1.1.0.1</version>
+            <scope>test</scope>
+        </dependency>
+#+END_SRC
+** Setup and Data load
+#+BEGIN_SRC
+@RunWith(SpringJUnit4ClassRunner.class)
+@DirtiesContext
+@ActiveProfiles(profiles = "test")
+@ContextConfiguration(classes = {TestPropertyConfiguration.class, DaoConfig.class, CassandraDemandConfiguration.class})
+public class TlmArchiveTtlTest {
+
+    @Resource(name = "tlmArchiveTtl")
+    private TlmArchiveTtl tlmArchiveTtl;
+
+    @BeforeClass
+    public static void setUp() throws Exception {
+        // This MUST be fired up before the spring context is created.
+        EmbeddedCassandraServerHelper.startEmbeddedCassandra("tatestcassandra.yaml");
+        DataLoader dataLoader = new DataLoader("TestCluster", "localhost:9172");
+        dataLoader.load(new ClassPathJsonDataSet("clustertestdata.json"));
+
+        dataLoader.load(new ClassPathJsonDataSet("drsindextestdata.json"));
+    }
+...
+#+END_SRC
+** Actual Test
+#+BEGIN_SRC
+    @Test
+    public void testReadWriteSimpleText() throws Exception {
+        String testData = "... (omitted json representing transaction here) ...";
+        verifyData(testData);
+    }
+
+    private void verifyData(String data) throws Exception {
+        TlmArchiveRecord record = new TlmArchiveRecordImpl();
+        record.setData(data);
+
+        long testTime = System.currentTimeMillis();
+        String uuid = UUID.randomUUID().toString();
+        TlmArchiveKey key = new TlmArchiveKeyImpl(testTime, uuid);
+        record.setTlmArchiveKey(key);
+
+        tlmArchiveWriter.writeRecord(record);
+        assertNotNull(record.getTlmArchiveKey());
+        TlmArchiveKey savedKey = record.getTlmArchiveKey();
+
+        TlmArchiveRecord r2 = tlmArchiveReader.readRecord(savedKey);
+        assertEquals(data, r2.getData());
+    }
+#+END_SRC
+** "Long running" trick
+#+BEGIN_SRC
+    /**
+     * Most of the time taken on this comes from killing 3650 column families which take about 1200ms each.
+     * So killing 10 years of column families takes about an hour.
+     * <p/>
+     * Creating the column families isn't especially fast either, about 600ms each - so creating 3650 column families
+     * and inserting 87672 records takes about 30 minutes.
+     */
+    @Test
+    public void testTenYearsOfDataOneMessageAnHour() throws Exception {
+        assumeTrue(wantLongRunningTests);
+        DateTime startDateTime = new DateTime(1980, 1, 1, 0, 0, 0, 0);
+        DateTime endDateTime = new DateTime(1989, 12, 31, 23, 59, 59, 999);
+
+        // the one makes it easy to compare message count to time:
+        // the 1234th message will have the last 4 digits of the ms time be 1234
+        // and the formatted time will end in 01,234
+        int period = 60 * 60 * 1000 + 1;
+
+        verifyInsertRead(startDateTime, endDateTime, period, false);
+    }
+#+END_SRC
+The 'assumeTrue' is the key here
+
+* System and Cassandra testing
+* Cluster spin up and destroying
+*** Touches realm of puppet, chef, juju charms, etc...
+** 
+** Cluster based testing 'in the large'
+*** Automation for load and capacity testing
+** Cluster based testing 'in the small'
+*** Cassandra cluster automation (WIP)
+ - Proving out our usage of cassandra.
+ - System level environment for cassandra 'deep dives' (learning) 
+ - Regression testing our assumptions when we upgrade Cassandra.
+
+
+* Cool things
+*** Github pages
+Great way to serve static html pages for free!
+**** Jekyll support for html generation
+*** Org-reveal
+**** "Source code" for this reveal.js in 'org-mode'
+
+
+* Questions/Next meeting
+*** What should we do next?
+*** Discussion/Volunteers?
+*** Want to fiddle with github pages?
+*** Speakers?  Topics
+
+
+
+
+
+* Interesting links
+*** Iovation and Cassandra
+http://www.planetcassandra.org/blog/post/iovation-chooses-cassandra-for-predictable-cost-growth-and-scalability
+*** Maven Cassandra Testing
+http://mojo.codehaus.org/cassandra-maven-plugin/
+*** Embedded Cassandra Testing Library
+https://github.com/jsevellec/cassandra-unit
+
+* Thank you
