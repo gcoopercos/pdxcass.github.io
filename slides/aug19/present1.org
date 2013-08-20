@@ -222,13 +222,16 @@ The 'assumeTrue' is the key here
 
 * System and Cassandra testing
 - Large scale
+
   QA as close to production as possible.
 - Small scale
+
   More like general 'cassandra' testing with a cluster.
 - Current Efforts
 
 * Large Scale Details
 - Automated teardown and restart
+
   Around an hour for 24 node cluster
 - Some automated, mostly Manual validation
 - Very service/application specific.
@@ -237,37 +240,39 @@ The 'assumeTrue' is the key here
 
 * Small Scale Details
 - Library for cluster spin up and destroying (could be used interactively)
+
   /Touches realm of puppet, chef, juju charms, etc...(but 100% JVM based)/
 - Proving our Cassandra assumptions
  - Do our procedures for node replacement do what is expected?
  - When we upgrade Cassandra are our expectations still met?
  - How does Cassandra behave when we have a corrupted SSTable. Can we make a change?
 - Currently 'generic', not iovation service specific
-- Could be used for integration testing in place of 'single 
+- Could be used for integration testing in services
  
 
 * Cool things
 - Github pages
-Great way to serve static html pages for free!
+  
+  Great way to serve static html pages for free!
   - Jekyll support for html generation
 - Org-reveal /for emacs org-mode nerds/
   - "Source code" for this reveal.js presentation in 'org-mode'
 
 * Interesting link references
-*** [[http://mojo.codehaus.org/cassandra-maven-plugin/][Maven Cassandra Testing]]
-*** [[https://github.com/jsevellec/cassandra-unit][Embedded Cassandra Testing Library]]
-*** [[https://github.com/Netflix/astyanax][Astyanax Client]]
-*** [[http://pages.github.com/][GitHub Pages]]
-*** [[http://www.planetcassandra.org/blog/post/iovation-chooses-cassandra-for-predictable-cost-growth-and-scalability][Iovation and Cassandra]]
+- [[http://mojo.codehaus.org/cassandra-maven-plugin/][Maven Cassandra Testing]]
+- [[https://github.com/jsevellec/cassandra-unit][Embedded Cassandra Testing Library]]
+- [[https://github.com/Netflix/astyanax][Astyanax Client]]
+- [[http://pages.github.com/][GitHub Pages]]
+- [[http://www.planetcassandra.org/blog/post/iovation-chooses-cassandra-for-predictable-cost-growth-and-scalability][Iovation and Cassandra]]
 
-*** [[http://lab.hakim.se/reveal-js/#/][reveal.js]]
-*** [[http://orgmode.org/][Org-Mode]] and [[https://github.com/yjwen/org-reveal][Org-Reveal]]
+- [[http://lab.hakim.se/reveal-js/#/][reveal.js]]
+- [[http://orgmode.org/][Org-Mode]] and [[https://github.com/yjwen/org-reveal][Org-Reveal]]
 
 * Questions/Next meeting
-*** What should we do next?
-*** Discussion/Volunteers?
-*** Want to fiddle with github pages?
-*** Speakers?  Topics
+- What should we do next?
+- Discussion/Volunteers?
+- Want to fiddle with github pages?
+- Speakers?  Topics
 
 
 * Thank you
