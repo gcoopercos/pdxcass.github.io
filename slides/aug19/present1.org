@@ -1,12 +1,20 @@
 #+TITLE: Testing with Cassandra
+#+AUTHOR:
+#+DATE: Aug. 19, 2013
+#+EMAIL: gregory.cooper@iovation.com
 #+OPTIONS: toc:nil
 #+OPTIONS: num:nil
 #+OPTIONS: H:2
-#+REVEAL_THEME: sky 
+#+OPTIONS: reveal_centerxx:nil
+#+REVEAL_HLEVEL: 2
+#+REVEAL_THEMExx: sky 
 #+REVEAL_THEMExx: serif 
+#+REVEAL_THEMExx: night
+#+REVEAL_THEME: solarized
+#+REVEAL_THEMExx: moon
 #+REVEAL_TRANS: fade
-
-
+#+REVEAL_MARGINxx: 4.0
+#+REVEAL_MAX_SCALExx: 0.4
 
 #+BEGIN_NOTES
 Notes here
@@ -20,11 +28,7 @@ Notes here
 **** "Global" Replication factor of 3 with 1 per data center
 
 
-* Service Dev. Environment
- :PROPERTIES:
- :reveal_background: #00AAAA
- :reveal_background_trans: slide
- :END:
+** Development Environment
 *** Maven centric
 *** Mockito is moderately used
 *** Jenkins (Hudson) continuous integration
@@ -132,7 +136,7 @@ public class CassandraDrsDaoUnitTest {
 #+END_SRC
 
 
-* Embedded approach
+** Embedded approach
 ***  Jeremy Sevellec's approach for embedding
 Personall I find this easier to control initial setup.
 ** POM Dependency
