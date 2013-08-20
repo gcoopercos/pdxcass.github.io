@@ -23,89 +23,89 @@ Notes here
 * Welcome
 *** Who am I and what's my role?
 *** How is Cassandra being used at iovation
-**** Several clusters
-**** Multiple data centers
-**** "Global" Replication factor of 3 with 1 per data center
+- Several clusters
+- Multiple data centers
+- "Global" Replication factor of 3 with 1 per data center
+/Low latency between data centers  make this interesting, but we have questions/
 
 
-** Development Environment
-*** Maven centric
-*** Mockito is moderately used
-*** Jenkins (Hudson) continuous integration
-*** Frequent deployments
-*** Matching QA environment difficult
-**** Scalability makes it hard
+* Development Environment
+- Maven centric
+- Mockito is moderately used
+- Jenkins (Hudson) continuous integration
+- Frequent deployments
+- Matching QA environment difficult
+/Scale of data makes it hard/
 
 
-* Cassandra Clients
-*** Astyanax and some Pelops
-*** Interested in the binary driver
-**** 1.2.x has binary and Thrift
-**** Anyone migrated yet?
-
+* Cassandra Interaction
+- Astyanax and some Pelops
+- Interested in the binary driver
+- 1.2.x has binary and Thrift
+  /Each has an (on/off) toggle/
+  - Heavily recommended for new clients
+    (/Stopped short of deprecating it/)
+  - Anyone migrated yet?
+     
 
 * Unit Testing
-*** Mockito heavy
-*** DAO driven
-** TBD Better example
+- Mockito heavy
+- DAO driven
+** Mockito Annotation
 #+BEGIN_SRC
 @RunWith(MockitoJUnitRunner.class)
 public class CassandraDrsDaoUnitTest {
-    private String UTF_8 = "utf-8";
-    private String[] testServers = {"test1:9999", "test2:9999"};
-    private List<Column> matchData;
-    Long ts = System.currentTimeMillis();
+...
 
     CassandraDrsDao dao;
-    ColumnFamily<String, String> deviceMatchColumnFamily = ColumnFamily.newColumnFamily("DeviceMatch", StringSerializer.get(), StringSerializer.get());;
-    List<String> deviceColNames;
-    ColumnFamily<String,String> exclusionColumnFamily = ColumnFamily.newColumnFamily("SignatureExclusion", StringSerializer.get(), StringSerializer.get());;
-    List<String> exlucsionColNames;
+...
     
     @Mock
     PurgePolicyComponent policyComponent;
     
     @Mock
     private Keyspace patternStoreMock;
+#+END_SRC
+** Test DAO w/o Persistence
+#+BEGIN_SRC
+...
 
+    @Before
+    public void setup() throws Exception {
+...
+        dao  = new CassandraDrsDao();
 ...
 
    @Test
     public void testReadExclusionListWithEmptyList() throws Exception {
         NuidSet nuidSet = new NuidSet();
         nuidSet.addNuid("nuid1", "value");
-        
-        List<String> nuidSigs = newArrayList();
-        
+...
         ColumnFamilyQuery cfQueryMock = mock(ColumnFamilyQuery.class);
         RowSliceQuery     rsQueryMock = mock(RowSliceQuery.class);
-        OperationResult resultMock = mock(OperationResult.class);
-        
-        when(exclusionStoreMock.prepareQuery(eq(exclusionColumnFamily))).thenReturn(cfQueryMock);
-        when(cfQueryMock.getKeySlice(eq(nuidSigs))).thenReturn(rsQueryMock);
+...
         when(rsQueryMock.withColumnSlice(exlucsionColNames)).thenReturn(rsQueryMock);
         when(rsQueryMock.execute()).thenReturn(resultMock);
-        
-        
+...        
         dao.readNuidExclusion(nuidSigs, nuidSet);
         verify(exclusionStoreMock, never()).prepareQuery(eq(exclusionColumnFamily));
         assertNotNull(nuidSet.getNuid("nuid1"));
     }
 #+END_SRC
-
+   
 
 * Integration testing
-*** Testing at a functional level
-*** Using running Cassandra instance
+- Testing at a functional level
+- Using running Cassandra instance
 
 * Different Approaches
-*** Maven plugin
-*** Embedded instance
+- Maven plugin
+- Embedded instance
 
 * Maven plugin
-*** Configure your pom
-*** Running Cassandra instance "just available"
-** Example POM 
+- Configure your pom
+- Running Cassandra instance "just available"
+** POM Setup
 #+BEGIN_SRC
     <build>
         <plugins>
@@ -136,10 +136,10 @@ public class CassandraDrsDaoUnitTest {
 #+END_SRC
 
 
-** Embedded approach
-***  Jeremy Sevellec's approach for embedding
-Personall I find this easier to control initial setup.
-** POM Dependency
+* Embedded approach
+-  Jeremy Sevellec's approach for embedding
+Easy to control initial setup and data loading.
+* POM Dependency
 #+BEGIN_SRC
         <dependency>
             <groupId>org.cassandraunit</groupId>
@@ -148,7 +148,7 @@ Personall I find this easier to control initial setup.
             <scope>test</scope>
         </dependency>
 #+END_SRC
-** Setup and Data load
+* Setup and Data load
 #+BEGIN_SRC
 @RunWith(SpringJUnit4ClassRunner.class)
 @DirtiesContext
@@ -170,7 +170,7 @@ public class TlmArchiveTtlTest {
     }
 ...
 #+END_SRC
-** Actual Test
+* Actual Test
 #+BEGIN_SRC
     @Test
     public void testReadWriteSimpleText() throws Exception {
@@ -195,7 +195,7 @@ public class TlmArchiveTtlTest {
         assertEquals(data, r2.getData());
     }
 #+END_SRC
-** "Long running" trick
+* "Long running" trick
 #+BEGIN_SRC
     /**
      * Most of the time taken on this comes from killing 3650 column families which take about 1200ms each.
@@ -221,25 +221,47 @@ public class TlmArchiveTtlTest {
 The 'assumeTrue' is the key here
 
 * System and Cassandra testing
-* Cluster spin up and destroying
-*** Touches realm of puppet, chef, juju charms, etc...
-** 
-** Cluster based testing 'in the large'
-*** Automation for load and capacity testing
-** Cluster based testing 'in the small'
-*** Cassandra cluster automation (WIP)
- - Proving out our usage of cassandra.
- - System level environment for cassandra 'deep dives' (learning) 
- - Regression testing our assumptions when we upgrade Cassandra.
+- Large scale
+  QA as close to production as possible.
+- Small scale
+  More like general 'cassandra' testing with a cluster.
+- Current Efforts
 
+* Large Scale Details
+- Automated teardown and restart
+  Around an hour for 24 node cluster
+- Some automated, mostly Manual validation
+- Very service/application specific.
+- Great for load testing and capacity planning.
+- A level of confidence before deployment
+
+* Small Scale Details
+- Library for cluster spin up and destroying (could be used interactively)
+  /Touches realm of puppet, chef, juju charms, etc...(but 100% JVM based)/
+- Proving our Cassandra assumptions
+ - Do our procedures for node replacement do what is expected?
+ - When we upgrade Cassandra are our expectations still met?
+ - How does Cassandra behave when we have a corrupted SSTable. Can we make a change?
+- Currently 'generic', not iovation service specific
+- Could be used for integration testing in place of 'single 
+ 
 
 * Cool things
-*** Github pages
+- Github pages
 Great way to serve static html pages for free!
-**** Jekyll support for html generation
-*** Org-reveal
-**** "Source code" for this reveal.js in 'org-mode'
+  - Jekyll support for html generation
+- Org-reveal /for emacs org-mode nerds/
+  - "Source code" for this reveal.js presentation in 'org-mode'
 
+* Interesting link references
+*** [[http://mojo.codehaus.org/cassandra-maven-plugin/][Maven Cassandra Testing]]
+*** [[https://github.com/jsevellec/cassandra-unit][Embedded Cassandra Testing Library]]
+*** [[https://github.com/Netflix/astyanax][Astyanax Client]]
+*** [[http://pages.github.com/][GitHub Pages]]
+*** [[http://www.planetcassandra.org/blog/post/iovation-chooses-cassandra-for-predictable-cost-growth-and-scalability][Iovation and Cassandra]]
+
+*** [[http://lab.hakim.se/reveal-js/#/][reveal.js]]
+*** [[http://orgmode.org/][Org-Mode]] and [[https://github.com/yjwen/org-reveal][Org-Reveal]]
 
 * Questions/Next meeting
 *** What should we do next?
@@ -247,16 +269,5 @@ Great way to serve static html pages for free!
 *** Want to fiddle with github pages?
 *** Speakers?  Topics
 
-
-
-
-
-* Interesting links
-*** Iovation and Cassandra
-http://www.planetcassandra.org/blog/post/iovation-chooses-cassandra-for-predictable-cost-growth-and-scalability
-*** Maven Cassandra Testing
-http://mojo.codehaus.org/cassandra-maven-plugin/
-*** Embedded Cassandra Testing Library
-https://github.com/jsevellec/cassandra-unit
 
 * Thank you
