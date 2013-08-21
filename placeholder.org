@@ -1,0 +1,21 @@
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="original/stylesheets/styles.css" />
+* Unit Testing with Cassandra
+
+Mark your calendar! The Portland Cassandra User's Group (pdxcass) is going to be meeting on Tuesday, August 20th at 5:30 pm at iovation. Tentatively the group will meet every 3rd Tuesday of the month.
+
+When: 5:30-7:30
+Where: iovation
+Who: Us!
+What: Intro gathering with initial topic of Unit Testing with Cassandra.
+
+* Agenda
+The focus of this meeting will be the local users of Cassandra.  In an effort to 'bootstrap' the group there will be a presentation of some of the ways iovation uses Cassandra in our unit (and integration) tests. Please come with additional thoughts about ways you might want to see your user group shape itself.
+
+- 5:30-6:00 Meet & Greet.
+- 6:00-6:30/7:00  Presentation on unit test with Cassandra at iovation
+- 7:30+ Discussion on what's next.
+
+* Iovation Location Details
+Our meeting will be held at Iovation, on the 32nd floor of the US Bancorp Tower at 111 SW 5th (5th & Oak). It’s right on the Green & Yellow Max lines. Underground bike parking is available in the parking garage; outdoors all around the block in the usual spots. No bikes in the office, sorry!
+
+Building security will close access to the floor at 7:30.
