@@ -16,18 +16,23 @@ CATEGORY_FEED_ATOM = None
 TRANSLATION_FEED_ATOM = None
 
 # Blogroll
-LINKS =  (('Pelican', 'http://getpelican.com/'),
-          ('Python.org', 'http://python.org/'),
-          ('Jinja2', 'http://jinja.pocoo.org/'),
-          ('You can modify those links in your config file', '#'),)
+LINKS =  (('Pelican', 'http://blog.getpelican.com/'),
+          ('Planet Cassandra', 'http://planetcassandra.org/blog/'),)
 
 # Social widget
-SOCIAL = (('You can add links in your config file', '#'),
-          ('Another social link', '#'),)
+SOCIAL = (('Meetup', 'http://www.meetup.com/DataStax-Cassandra-Portland-Users/'),
+          ('Google+ Community', 'https://plus.google.com/communities/112052749645018243291'),)
 
 DEFAULT_PAGINATION = 10
 
 # Uncomment following line if you want document-relative URLs when developing
 #RELATIVE_URLS = True
 
-THEME = "bootstrap"
+#THEME = "bootstrap"
+#THEME = "Just-Read"
+#THEME = "dev-random2"
+THEME = "tuxlite_tbs"
+
+#THEME = "subtle"
+#THEME = "plumage"
+

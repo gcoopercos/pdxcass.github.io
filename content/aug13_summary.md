@@ -1,14 +1,12 @@
-Title: Test with Cassandra Summary super title
+Title: Test with Cassandra Summary
 Date: 2013-08-22 15:00
-Category: Java
-Tags: pdxcass, meeting, summary
-Slug: my-post
+Category: Past Meetings
+Tags: meetings, summaries
+Slug: August13
 Author: Gregory Cooper
 Summary: PDX Cassandra user group summary for August 20, 2013
 
-This is the content of my super blog post.
+The August meeting of the Cassandra user group, hosted by iovation, involved a presentation of "Testing with Cassandra" by Gregory Cooper who is one of the developers heavily involved in Cassandra based applications for iovation.
 
-Testing with Cassandra summary
-##############################
-
-Holy moly.
+The slides for this presentation can be found here:
+[August 2013 Slides](http://www.pdxcass.org/slides/aug19/present1.html)
