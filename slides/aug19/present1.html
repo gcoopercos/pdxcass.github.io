@@ -17,92 +17,123 @@
 <h2><a href="mailto:gregory.cooper@iovation.com">gregory.cooper@iovation.com</a></h2>
 <h2>Aug. 19, 2013</h2></section>
 <aside class="notes">
-<p>
 Notes here
-</p>
 </aside>
 
 <section id="sec-1" >
 
 <h2>Welcome</h2>
 <ul class="org-ul"><li class="fragment none">Who am I and what's my role?<br/></li>
-<li class="fragment none">How is Cassandra being used at iovation<br/><ul class="org-ul"><li class="fragment none">Several clusters<br/></li>
-<li class="fragment none">Multiple data centers<br/></li>
-<li class="fragment none">"Global" Replication factor of 3 with 1 per data center<br/></li></ul>
+<li class="fragment none">How is Cassandra being used at iovation<br/><ul class="org-ul">
+<li>Several clusters
 </li>
-
-</section>
-<section>
-<section id="sec-1-1" >
-
-<h3>Development Environment</h3>
-<ul class="org-ul"><li class="fragment none">Maven centric<br/></li>
-<li class="fragment none">Mockito is moderately used<br/></li>
-<li class="fragment none">Jenkins (Hudson) continuous integration<br/></li>
-<li class="fragment none">Frequent deployments<br/></li>
-<li class="fragment none">Matching QA environment difficult<br/><ul class="org-ul"><li class="fragment none">Scalability makes it hard<br/></li></ul>
+<li>Multiple data centers
+</li>
+<li>"Global" Replication factor of 3 with 1 per data center
+</li>
+</ul>
+<p>
+<i>Low latency between data centers  make this interesting, but we have questions</i>
+</p>
 </li></ul>
-</section>
 
 </section>
 <section id="sec-2" >
 
-<h2>Cassandra Clients</h2>
-<ul class="org-ul"><li class="fragment none">Astyanax and some Pelops<br/></li>
-<li class="fragment none">Interested in the binary driver<br/><ul class="org-ul"><li class="fragment none">1.2.x has binary and Thrift<br/></li>
-<li class="fragment none">Anyone migrated yet?<br/></li></ul>
-</li></ul>
+<h2>Development Environment</h2>
+<ul class="org-ul">
+<li>Maven centric
+</li>
+<li>Mockito is moderately used
+</li>
+<li>Jenkins (Hudson) continuous integration
+</li>
+<li>Frequent deployments
+</li>
+<li>Matching QA environment difficult
+</li>
+</ul>
+<p>
+<i>Scale of data makes it hard</i>
+</p>
 
 </section>
 <section id="sec-3" >
 
+<h2>Cassandra Interaction</h2>
+<ul class="org-ul">
+<li>Astyanax and some Pelops
+</li>
+<li>Interested in the binary driver
+</li>
+<li>1.2.x has binary and Thrift
+  <i>Each has an (on/off) toggle</i>
+<ul class="org-ul">
+<li>Heavily recommended for new clients
+(<i>Stopped short of deprecating it</i>)
+</li>
+<li>Anyone migrated yet?
+</li>
+</ul>
+</li>
+</ul>
+
+</section>
+<section id="sec-4" >
+
 <h2>Unit Testing</h2>
-<ul class="org-ul"><li class="fragment none">Mockito heavy<br/></li>
-<li class="fragment none">DAO driven<br/></li>
+<ul class="org-ul">
+<li>Mockito heavy
+</li>
+<li>DAO driven
+</li>
+</ul>
 </section>
 <section>
-<section id="sec-3-1" >
+<section id="sec-4-1" >
 
-<h3>TBD Better example</h3>
+<h3>Mockito Annotation</h3>
 <pre class="example">
 @RunWith(MockitoJUnitRunner.class)
 public class CassandraDrsDaoUnitTest {
-    private String UTF_8 = "utf-8";
-    private String[] testServers = {"test1:9999", "test2:9999"};
-    private List&lt;Column&gt; matchData;
-    Long ts = System.currentTimeMillis();
+...
 
     CassandraDrsDao dao;
-    ColumnFamily&lt;String, String&gt; deviceMatchColumnFamily = ColumnFamily.newColumnFamily("DeviceMatch", StringSerializer.get(), StringSerializer.get());;
-    List&lt;String&gt; deviceColNames;
-    ColumnFamily&lt;String,String&gt; exclusionColumnFamily = ColumnFamily.newColumnFamily("SignatureExclusion", StringSerializer.get(), StringSerializer.get());;
-    List&lt;String&gt; exlucsionColNames;
+...
     
     @Mock
     PurgePolicyComponent policyComponent;
     
     @Mock
     private Keyspace patternStoreMock;
+</pre>
+</section>
 
+</section>
+<section>
+<section id="sec-4-2" >
+
+<h3>Test DAO w/o Persistence</h3>
+<pre class="example">
+...
+
+    @Before
+    public void setup() throws Exception {
+...
+        dao  = new CassandraDrsDao();
 ...
 
    @Test
     public void testReadExclusionListWithEmptyList() throws Exception {
         NuidSet nuidSet = new NuidSet();
         nuidSet.addNuid("nuid1", "value");
-        
-        List&lt;String&gt; nuidSigs = newArrayList();
-        
+...
         ColumnFamilyQuery cfQueryMock = mock(ColumnFamilyQuery.class);
         RowSliceQuery     rsQueryMock = mock(RowSliceQuery.class);
-        OperationResult resultMock = mock(OperationResult.class);
-        
-        when(exclusionStoreMock.prepareQuery(eq(exclusionColumnFamily))).thenReturn(cfQueryMock);
-        when(cfQueryMock.getKeySlice(eq(nuidSigs))).thenReturn(rsQueryMock);
+...
         when(rsQueryMock.withColumnSlice(exlucsionColNames)).thenReturn(rsQueryMock);
         when(rsQueryMock.execute()).thenReturn(resultMock);
-        
-        
+...        
         dao.readNuidExclusion(nuidSigs, nuidSet);
         verify(exclusionStoreMock, never()).prepareQuery(eq(exclusionColumnFamily));
         assertNotNull(nuidSet.getNuid("nuid1"));
@@ -111,28 +142,40 @@ public class CassandraDrsDaoUnitTest {
 </section>
 
 </section>
-<section id="sec-4" >
-
-<h2>Integration testing</h2>
-<ul class="org-ul"><li class="fragment none">Testing at a functional level<br/></li>
-<li class="fragment none">Using running Cassandra instance<br/></li></ul>
-</section>
 <section id="sec-5" >
 
-<h2>Different Approaches</h2>
-<ul class="org-ul"><li class="fragment none">Maven plugin<br/></li>
-<li class="fragment none">Embedded instance<br/></li></ul>
+<h2>Integration testing</h2>
+<ul class="org-ul">
+<li>Testing at a functional level
+</li>
+<li>Using running Cassandra instance
+</li>
+</ul>
 </section>
 <section id="sec-6" >
 
+<h2>Different Approaches</h2>
+<ul class="org-ul">
+<li>Maven plugin
+</li>
+<li>Embedded instance
+</li>
+</ul>
+</section>
+<section id="sec-7" >
+
 <h2>Maven plugin</h2>
-<ul class="org-ul"><li class="fragment none">Configure your pom<br/></li>
-<li class="fragment none">Running Cassandra instance "just available"<br/></li>
+<ul class="org-ul">
+<li>Configure your pom
+</li>
+<li>Running Cassandra instance "just available"
+</li>
+</ul>
 </section>
 <section>
-<section id="sec-6-1"  data-background="#AAAAAA" data-background-transition="slide">
+<section id="sec-7-1" >
 
-<h3>Example POM</h3>
+<h3>POM Setup</h3>
 <pre class="example">
 &lt;build&gt;
     &lt;plugins&gt;
@@ -164,19 +207,21 @@ public class CassandraDrsDaoUnitTest {
 </section>
 
 </section>
-<section id="sec-7" >
+<section id="sec-8" >
 
 <h2>Embedded approach</h2>
-<ul class="org-ul"><li class="fragment none">Jeremy Sevellec's approach for embedding<br/><p>
-Personall I find this easier to control initial setup.
-</p>
+<ul class="org-ul">
+<li>Jeremy Sevellec's approach for embedding
 </li>
+</ul>
+<p>
+Easy to control initial setup and data loading.
+</p>
 
 </section>
-<section>
-<section id="sec-7-1" >
+<section id="sec-9" >
 
-<h3>POM Dependency</h3>
+<h2>POM Dependency</h2>
 <pre class="example">
 &lt;dependency&gt;
     &lt;groupId&gt;org.cassandraunit&lt;/groupId&gt;
@@ -185,13 +230,11 @@ Personall I find this easier to control initial setup.
     &lt;scope&gt;test&lt;/scope&gt;
 &lt;/dependency&gt;
 </pre>
-</section>
 
 </section>
-<section>
-<section id="sec-7-2" >
+<section id="sec-10" >
 
-<h3>Setup and Data load</h3>
+<h2>Setup and Data load</h2>
 <pre class="example">
 @RunWith(SpringJUnit4ClassRunner.class)
 @DirtiesContext
@@ -213,13 +256,11 @@ public class TlmArchiveTtlTest {
     }
 ...
 </pre>
-</section>
 
 </section>
-<section>
-<section id="sec-7-3" >
+<section id="sec-11" >
 
-<h3>Actual Test</h3>
+<h2>Actual Test</h2>
 <pre class="example">
 @Test
 public void testReadWriteSimpleText() throws Exception {
@@ -244,13 +285,11 @@ private void verifyData(String data) throws Exception {
     assertEquals(data, r2.getData());
 }
 </pre>
-</section>
 
 </section>
-<section>
-<section id="sec-7-4" >
+<section id="sec-12" >
 
-<h3>"Long running" trick</h3>
+<h2>"Long running" trick</h2>
 <pre class="example">
 /**
  * Most of the time taken on this comes from killing 3650 column families which take about 1200ms each.
@@ -277,90 +316,132 @@ public void testTenYearsOfDataOneMessageAnHour() throws Exception {
 The 'assumeTrue' is the key here
 </p>
 </section>
-</section>
-<section id="sec-8" >
+<section id="sec-13" >
 
 <h2>System and Cassandra testing</h2>
-</section>
-<section id="sec-9" >
+<ul class="org-ul">
+<li>Large scale
 
-<h2>Cluster spin up and destroying</h2>
-<ul class="org-ul"><li class="fragment none">Touches realm of puppet, chef, juju charms, etc&#x2026;<br/></li>
-</section>
-<section>
-<section id="sec-9-1" >
-
-<h3></h3>
-</section>
-</section>
-<section>
-<section id="sec-9-2" >
-
-<h3>Cluster based testing 'in the large'</h3>
-<ul class="org-ul"><li class="fragment none">Automation for load and capacity testing<br/></li></ul>
-</section>
-
-</section>
-<section>
-<section id="sec-9-3" >
-
-<h3>Cluster based testing 'in the small'</h3>
-<ul class="org-ul"><li class="fragment none">Cassandra cluster automation (WIP)<br/><ul class="org-ul">
-<li>Proving out our usage of cassandra.
+<p>
+QA as close to production as possible.
+</p>
 </li>
-<li>System level environment for cassandra 'deep dives' (learning) 
+<li>Small scale
+
+<p>
+More like general 'cassandra' testing with a cluster.
+</p>
 </li>
-<li>Regression testing our assumptions when we upgrade Cassandra.
+<li>Current Efforts
 </li>
 </ul>
-</li></ul>
 </section>
+<section id="sec-14" >
+
+<h2>Large Scale Details</h2>
+<ul class="org-ul">
+<li>Automated teardown and restart
+
+<p>
+Around an hour for 24 node cluster
+</p>
+</li>
+<li>Some automated, mostly Manual validation
+</li>
+<li>Very service/application specific.
+</li>
+<li>Great for load testing and capacity planning.
+</li>
+<li>A level of confidence before deployment
+</li>
+</ul>
+</section>
+<section id="sec-15" >
+
+<h2>Small Scale Details</h2>
+<ul class="org-ul">
+<li>Library for cluster spin up and destroying (could be used interactively)
+
+<p>
+<i>Touches realm of puppet, chef, juju charms, etc&#x2026;(but 100% JVM based)</i>
+</p>
+</li>
+<li>Proving our Cassandra assumptions
+<ul class="org-ul">
+<li>Do our procedures for node replacement do what is expected?
+</li>
+<li>When we upgrade Cassandra are our expectations still met?
+</li>
+<li>How does Cassandra behave when we have a corrupted SSTable. Can we make a change?
+</li>
+</ul>
+</li>
+<li>Currently 'generic', not iovation service specific
+</li>
+<li>Could be used for integration testing in services
+</li>
+</ul>
 
 </section>
-<section id="sec-10" >
+<section id="sec-16" >
 
 <h2>Cool things</h2>
-<ul class="org-ul"><li class="fragment none">Github pages<br/><p>
+<ul class="org-ul">
+<li>Github pages
+
+<p>
 Great way to serve static html pages for free!
 </p>
-<ul class="org-ul"><li class="fragment none">Jekyll support for html generation<br/></li></ul>
+<ul class="org-ul">
+<li>Jekyll support for html generation
+</li>
+</ul>
+</li>
+<li>Org-reveal <i>for emacs org-mode nerds</i>
+<ul class="org-ul">
+<li>"Source code" for this reveal.js presentation in 'org-mode'
+</li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="sec-17" >
+
+<h2>Interesting link references</h2>
+<ul class="org-ul">
+<li><a href="http://mojo.codehaus.org/cassandra-maven-plugin/">Maven Cassandra Testing</a>
+</li>
+<li><a href="https://github.com/jsevellec/cassandra-unit">Embedded Cassandra Testing Library</a>
+</li>
+<li><a href="https://github.com/Netflix/astyanax">Astyanax Client</a>
+</li>
+<li><a href="http://pages.github.com/">GitHub Pages</a>
+</li>
+<li><a href="http://www.planetcassandra.org/blog/post/iovation-chooses-cassandra-for-predictable-cost-growth-and-scalability">Iovation and Cassandra</a>
 </li>
 
-<li class="fragment none">Org-reveal<br/><ul class="org-ul"><li class="fragment none">"Source code" for this reveal.js in 'org-mode'<br/></li></ul>
-</li></ul>
-
+<li><a href="http://lab.hakim.se/reveal-js/#/">reveal.js</a>
+</li>
+<li><a href="http://orgmode.org/">Org-Mode</a> and <a href="https://github.com/yjwen/org-reveal">Org-Reveal</a>
+</li>
+</ul>
 </section>
-<section id="sec-11" >
+<section id="sec-18" >
 
 <h2>Questions/Next meeting</h2>
-<ul class="org-ul"><li class="fragment none">What should we do next?<br/></li>
-<li class="fragment none">Discussion/Volunteers?<br/></li>
-<li class="fragment none">Want to fiddle with github pages?<br/></li>
-<li class="fragment none">Speakers?  Topics<br/></li></ul>
-
-
-
+<ul class="org-ul">
+<li>What should we do next?
+</li>
+<li>Discussion/Volunteers?
+</li>
+<li>Want to fiddle with github pages?
+</li>
+<li>Speakers?  Topics
+</li>
+</ul>
 
 </section>
-<section id="sec-12" >
-
-<h2>Interesting links</h2>
-<ul class="org-ul"><li class="fragment none">Iovation and Cassandra<br/><p>
-<a href="http://www.planetcassandra.org/blog/post/iovation-chooses-cassandra-for-predictable-cost-growth-and-scalability">http://www.planetcassandra.org/blog/post/iovation-chooses-cassandra-for-predictable-cost-growth-and-scalability</a>
-</p>
-</li>
-
-<li class="fragment none">Maven Cassandra Testing<br/><p>
-<a href="http://mojo.codehaus.org/cassandra-maven-plugin/">http://mojo.codehaus.org/cassandra-maven-plugin/</a>
-</p>
-</li>
-
-<li class="fragment none">Embedded Cassandra Testing Library<br/><p>
-<a href="https://github.com/jsevellec/cassandra-unit">https://github.com/jsevellec/cassandra-unit</a>
-</p>
-</li></ul>
-</section>
-<section id="sec-13" >
+<section id="sec-19" >
 
 <h2>Thank you</h2>
 </section>
