@@ -17,7 +17,9 @@
 <h2><a href="mailto:gregory.cooper@iovation.com">gregory.cooper@iovation.com</a></h2>
 <h2>Aug. 19, 2013</h2></section>
 <aside class="notes">
+<p>
 Notes here
+</p>
 </aside>
 
 <section id="sec-1" >
@@ -25,9 +27,9 @@ Notes here
 <h2>Welcome</h2>
 <ul class="org-ul"><li class="fragment none">Who am I and what's my role?<br/></li>
 <li class="fragment none">How is Cassandra being used at iovation<br/><ul class="org-ul">
-<li>Several clusters
+<li>Several clusters (24 node, 12 node, 6 node, and 8 node) 
 </li>
-<li>Multiple data centers
+<li>Multiple data centers (3 data centers)
 </li>
 <li>"Global" Replication factor of 3 with 1 per data center
 </li>
@@ -36,7 +38,6 @@ Notes here
 <i>Low latency between data centers  make this interesting, but we have questions</i>
 </p>
 </li></ul>
-
 </section>
 <section id="sec-2" >
 
@@ -50,7 +51,7 @@ Notes here
 </li>
 <li>Frequent deployments
 </li>
-<li>Matching QA environment difficult
+<li>Matching QA environment difficult but we have something close
 </li>
 </ul>
 <p>
@@ -131,7 +132,7 @@ public class CassandraDrsDaoUnitTest {
         ColumnFamilyQuery cfQueryMock = mock(ColumnFamilyQuery.class);
         RowSliceQuery     rsQueryMock = mock(RowSliceQuery.class);
 ...
-        when(rsQueryMock.withColumnSlice(exlucsionColNames)).thenReturn(rsQueryMock);
+        when(rsQueryMock.withColumnSlice(exclusionColNames)).thenReturn(rsQueryMock);
         when(rsQueryMock.execute()).thenReturn(resultMock);
 ...        
         dao.readNuidExclusion(nuidSigs, nuidSet);
@@ -181,26 +182,19 @@ public class CassandraDrsDaoUnitTest {
     &lt;plugins&gt;
         ...
         &lt;plugin&gt;
-            &lt;groupId&gt;com.iovation.maven&lt;/groupId&gt;
-            &lt;artifactId&gt;maven-cassandra-plugin&lt;/artifactId&gt;
-            &lt;version&gt;1.0.1-SNAPSHOT&lt;/version&gt;
+            &lt;groupId&gt;org.codehaus.mojo&lt;/groupId&gt;
+            &lt;artifactId&gt;cassandra-maven-plugin&lt;/artifactId&gt;
+            &lt;version&gt;1.2.1-1&lt;/version&gt;
             &lt;executions&gt;
-                &lt;execution&gt;
-                    &lt;goals&gt;
-                        &lt;goal&gt;cassandra-start&lt;/goal&gt;
-                        &lt;goal&gt;cassandra-stop&lt;/goal&gt;
-                    &lt;/goals&gt;
-                &lt;/execution&gt;
+              &lt;execution&gt;
+                &lt;goals&gt;
+                  &lt;goal&gt;start&lt;/goal&gt;
+                  &lt;goal&gt;stop&lt;/goal&gt;
+                &lt;/goals&gt;
+              &lt;/execution&gt;
             &lt;/executions&gt;
-        &lt;/plugin&gt;
-        &lt;plugin&gt;
-            &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
-            &lt;artifactId&gt;maven-war-plugin&lt;/artifactId&gt;
-            &lt;version&gt;2.0&lt;/version&gt;
-            &lt;configuration&gt;
-                &lt;warName&gt;service&lt;/warName&gt;
-            &lt;/configuration&gt;
-        &lt;/plugin&gt;
+       &lt;/plugin&gt;
+       ...
     &lt;/plugins&gt;
 &lt;/build&gt;
 </pre>
@@ -213,11 +207,11 @@ public class CassandraDrsDaoUnitTest {
 <ul class="org-ul">
 <li>Jeremy Sevellec's approach for embedding
 </li>
+<li>Easy to control initial setup and data loading.
+</li>
+<li>Once per class could cause issues.
+</li>
 </ul>
-<p>
-Easy to control initial setup and data loading.
-</p>
-
 </section>
 <section id="sec-9" >
 
@@ -346,7 +340,7 @@ More like general 'cassandra' testing with a cluster.
 Around an hour for 24 node cluster
 </p>
 </li>
-<li>Some automated, mostly Manual validation
+<li>Some automated, mostly manual validation
 </li>
 <li>Very service/application specific.
 </li>
@@ -393,7 +387,7 @@ Around an hour for 24 node cluster
 Great way to serve static html pages for free!
 </p>
 <ul class="org-ul">
-<li>Jekyll support for html generation
+<li>Tools such as <a href="http://blog.getpelican.com/">Pelican</a> and Jekyll are great!
 </li>
 </ul>
 </li>
@@ -416,6 +410,8 @@ Great way to serve static html pages for free!
 <li><a href="https://github.com/Netflix/astyanax">Astyanax Client</a>
 </li>
 <li><a href="http://pages.github.com/">GitHub Pages</a>
+</li>
+<li><a href="http://blog.getpelican.com/">Pelican</a>
 </li>
 <li><a href="http://www.planetcassandra.org/blog/post/iovation-chooses-cassandra-for-predictable-cost-growth-and-scalability">Iovation and Cassandra</a>
 </li>

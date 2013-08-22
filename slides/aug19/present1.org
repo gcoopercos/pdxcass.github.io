@@ -23,18 +23,17 @@ Notes here
 * Welcome
 *** Who am I and what's my role?
 *** How is Cassandra being used at iovation
-- Several clusters
-- Multiple data centers
+- Several clusters (24 node, 12 node, 6 node, and 8 node) 
+- Multiple data centers (3 data centers)
 - "Global" Replication factor of 3 with 1 per data center
 /Low latency between data centers  make this interesting, but we have questions/
-
 
 * Development Environment
 - Maven centric
 - Mockito is moderately used
 - Jenkins (Hudson) continuous integration
 - Frequent deployments
-- Matching QA environment difficult
+- Matching QA environment difficult but we have something close
 /Scale of data makes it hard/
 
 
@@ -84,7 +83,7 @@ public class CassandraDrsDaoUnitTest {
         ColumnFamilyQuery cfQueryMock = mock(ColumnFamilyQuery.class);
         RowSliceQuery     rsQueryMock = mock(RowSliceQuery.class);
 ...
-        when(rsQueryMock.withColumnSlice(exlucsionColNames)).thenReturn(rsQueryMock);
+        when(rsQueryMock.withColumnSlice(exclusionColNames)).thenReturn(rsQueryMock);
         when(rsQueryMock.execute()).thenReturn(resultMock);
 ...        
         dao.readNuidExclusion(nuidSigs, nuidSet);
@@ -111,26 +110,19 @@ public class CassandraDrsDaoUnitTest {
         <plugins>
             ...
             <plugin>
-                <groupId>com.iovation.maven</groupId>
-                <artifactId>maven-cassandra-plugin</artifactId>
-                <version>1.0.1-SNAPSHOT</version>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>cassandra-maven-plugin</artifactId>
+                <version>1.2.1-1</version>
                 <executions>
-                    <execution>
-                        <goals>
-                            <goal>cassandra-start</goal>
-                            <goal>cassandra-stop</goal>
-                        </goals>
-                    </execution>
+                  <execution>
+                    <goals>
+                      <goal>start</goal>
+                      <goal>stop</goal>
+                    </goals>
+                  </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-war-plugin</artifactId>
-                <version>2.0</version>
-                <configuration>
-                    <warName>service</warName>
-                </configuration>
-            </plugin>
+           </plugin>
+           ...
         </plugins>
     </build>
 #+END_SRC
@@ -138,7 +130,9 @@ public class CassandraDrsDaoUnitTest {
 
 * Embedded approach
 -  Jeremy Sevellec's approach for embedding
-Easy to control initial setup and data loading.
+- Easy to control initial setup and data loading.
+- Once per class could cause issues.
+
 * POM Dependency
 #+BEGIN_SRC
         <dependency>
@@ -233,7 +227,7 @@ The 'assumeTrue' is the key here
 - Automated teardown and restart
 
   Around an hour for 24 node cluster
-- Some automated, mostly Manual validation
+- Some automated, mostly manual validation
 - Very service/application specific.
 - Great for load testing and capacity planning.
 - A level of confidence before deployment
@@ -254,7 +248,7 @@ The 'assumeTrue' is the key here
 - Github pages
   
   Great way to serve static html pages for free!
-  - Jekyll support for html generation
+  - Tools such as [[http://blog.getpelican.com/][Pelican]] and Jekyll are great!
 - Org-reveal /for emacs org-mode nerds/
   - "Source code" for this reveal.js presentation in 'org-mode'
 
@@ -263,6 +257,7 @@ The 'assumeTrue' is the key here
 - [[https://github.com/jsevellec/cassandra-unit][Embedded Cassandra Testing Library]]
 - [[https://github.com/Netflix/astyanax][Astyanax Client]]
 - [[http://pages.github.com/][GitHub Pages]]
+- [[http://blog.getpelican.com/][Pelican]]
 - [[http://www.planetcassandra.org/blog/post/iovation-chooses-cassandra-for-predictable-cost-growth-and-scalability][Iovation and Cassandra]]
 
 - [[http://lab.hakim.se/reveal-js/#/][reveal.js]]
